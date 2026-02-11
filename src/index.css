@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  @apply bg-white text-gray-900;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  @apply transition-colors duration-200;
+}
