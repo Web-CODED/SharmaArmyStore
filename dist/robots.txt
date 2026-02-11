@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://sharmaarmystore.com/sitemap.xml

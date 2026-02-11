@@ -1,5 +1,6 @@
 import React from 'react';
 import { Facebook, Instagram, Youtube, MapPin, Phone, Mail, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 const Footer = () => {
   const socialLinks = [{
     icon: Facebook,
@@ -91,24 +92,21 @@ const Footer = () => {
             <ExternalLink className="w-3 h-3 ml-1" />
         </p>
         <p className="text-xs text-gray-500 mt-2 md:mt-0 flex items-center">
-          <a
-            href= "https://www.freeprivacypolicy.com/live/7cc50bdf-6987-46a1-8a36-f73b0b5f8287"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover: underline"
+          <Link
+            to="/privacy-policy"
+            className="hover:underline"
           >
             Privacy Policy
-          </a>
+          </Link>
         </p>
  
-        <p className="text-xs text-gray-500 mt-2 md:mt-0 flex item-center">
-          <a
-            href="https://www.freeprivacypolicy.com/live/25edfecf-2b5b-4a45-b983-3641195eb111"
-            target = "_blank"
-            rel="noopener noreferrer"
-            className="hover: underline"   
-          > Terms and Conditions
-          </a>
+        <p className="text-xs text-gray-500 mt-2 md:mt-0 flex items-center">
+          <Link
+            to="/terms-conditions"
+            className="hover:underline"
+          >
+            Terms and Conditions
+          </Link>
         </p>    
         </div>
       </div>

@@ -17,6 +17,8 @@ import Checkout from '@/pages/Checkout';
 import OrderConfirmation from '@/pages/OrderConfirmation';
 import OrderDetail from '@/pages/OrderDetail';
 import RefundReturnPolicy from '@/pages/RefundReturnPolicy';
+import PrivacyPolicy from '@/components/PrivacyPolicy';
+import TermsAndConditions from '@/components/TermsAndConditions';
 import { Toaster } from '@/components/ui/toaster';
 import LiveSalesCounter from '@/components/LiveSalesCounter';
 import RepublicDayPopup from '@/components/RepublicDayPopup';
@@ -50,6 +52,8 @@ function App() {
                 <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
                 <Route path="/order/:orderId" element={<OrderDetail />} />
                 <Route path="/refund-policy" element={<RefundReturnPolicy />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-conditions" element={<TermsAndConditions />} />
               </Routes>
             </motion.main>
           </AnimatePresence>
