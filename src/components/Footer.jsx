@@ -1,27 +1,27 @@
 import React from 'react';
 // use official brand icons for original styling
-import { FaFacebookF, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { MapPin, Phone, Mail, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import GoogleAdSense from './GoogleAdSense';
 const Footer = () => {
   const socialLinks = [{
-    icon: FaFacebookF,
+    icon: null,
+    image: '/facebook.png',
     href: 'https://www.facebook.com/profile.php?id=100042494335961',
     label: 'Facebook',
-    // keep brand blue for icon
-    color: 'text-blue-600 hover:text-blue-500'
+    style: 'plain'
   }, {
-    icon: FaYoutube,
+    icon: null,
+    image: '/youtube.png',
     href: 'https://youtube.com/@sharmaarmystore?si=MNQ_sHwylYYJlqt_',
     label: 'YouTube',
-    color: 'text-red-600 hover:text-red-500'
+    style: 'plain'
   }, {
-    icon: FaInstagram,
+    icon: null,
+    image: '/instagram.png',
     href: 'https://www.instagram.com/sharma_army_store_23/?utm_source=ig_web_button_share_sheet',
     label: 'Instagram',
-    // use neutral color; icon itself is multi‑colored by default if desired
-    color: 'text-pink-500 hover:text-pink-400'
+    style: 'plain'
   }];
   return <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -57,8 +57,8 @@ const Footer = () => {
             <div>
               <h3 className="text-lg font-bold mb-4 text-yellow-400">Follow Us</h3>
               <div className="flex space-x-4 mb-8">
-                {socialLinks.map(social => <a key={social.label} href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label} className={`p-4 rounded-full bg-gray-50 transition-all duration-300 transform hover:scale-110 shadow-md group ${social.color}`}>
-                    <social.icon className="w-8 h-8" />
+                {socialLinks.map(social => <a key={social.label} href={social.href} target="_blank" rel="noopener noreferrer" aria-label={social.label} className={social.style === 'plain' ? `transition-all duration-300 transform hover:scale-110 group ${social.color}` : `p-4 rounded-full bg-gray-50 transition-all duration-300 transform hover:scale-110 shadow-md group ${social.color}`}>
+                    {social.icon ? <social.icon className="w-8 h-8" /> : <img src={social.image} alt={social.label} className="object-contain" style={{width: '75px', height: '75px'}} />}
                   </a>)}
               </div>
             </div>
