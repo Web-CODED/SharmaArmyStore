@@ -6,20 +6,36 @@ import { CreditCard, Truck, AlertCircle, CheckCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { RAZORPAY_KEY_ID } from '@/config/supabase';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, getCartTotal, coupon, applyCoupon, removeCoupon, getDiscountAmount, clearCart } = useCart();
   const { toast } = useToast();
+  const { user, profile, isAuthenticated } = useAuth();
   
   const [couponInput, setCouponInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    // Load Razorpay script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     // Check authentication
-    const user = localStorage.getItem('currentUser');
-    if (!user) {
+    if (!isAuthenticated) {
       toast({
         title: "Login Required",
         description: "Please login to proceed with checkout",
@@ -30,15 +46,22 @@ const Checkout = () => {
     if (cartItems.length === 0) {
        navigate('/cart');
     }
-  }, [navigate, cartItems, toast]);
+  }, [navigate, cartItems, toast, isAuthenticated]);
 
   const subtotal = getCartTotal();
   const discount = getDiscountAmount();
   const taxableAmount = subtotal - discount;
   const gstRate = 0.18;
-  const gstAmount = taxableAmount * gstRate;
+  let gstAmount = 0;
+  let codCharge = 0;
+
+  if (paymentMethod === 'cod') {
+    gstAmount = taxableAmount * gstRate;
+    codCharge = 100;
+  }
+
   const shippingCost = 100;
-  const grandTotal = taxableAmount + gstAmount + shippingCost;
+  const grandTotal = taxableAmount + gstAmount + shippingCost + codCharge;
 
   const handleApplyCoupon = () => {
      const success = applyCoupon(couponInput);
@@ -51,37 +74,70 @@ const Checkout = () => {
      }
   };
 
+  const placeOrder = () => {
+    const orderId = 'ORD-' + Date.now() + Math.floor(Math.random() * 1000);
+    
+    const newOrder = {
+       id: orderId,
+       userId: user.id,
+       date: new Date().toLocaleDateString(),
+       items: cartItems,
+       subtotal,
+       discount,
+       gst: gstAmount,
+       codCharge,
+       shipping: shippingCost,
+       total: grandTotal,
+       paymentMethod,
+       status: 'Order Placed'
+    };
+
+    // Get existing orders
+    const existingOrders = localStorage.getItem('orders') ? JSON.parse(localStorage.getItem('orders')) : [];
+    const updatedOrders = [...existingOrders, newOrder];
+    localStorage.setItem('orders', JSON.stringify(updatedOrders));
+
+    clearCart();
+    setIsProcessing(false);
+    navigate(`/order-confirmation/${orderId}`);
+  };
+
   const handlePlaceOrder = () => {
      setIsProcessing(true);
      
-     setTimeout(() => {
-       const orderId = 'ORD-' + Date.now() + Math.floor(Math.random() * 1000);
-       const user = JSON.parse(localStorage.getItem('currentUser'));
-       
-       const newOrder = {
-          id: orderId,
-          userId: user.id,
-          date: new Date().toLocaleDateString(),
-          items: cartItems,
-          subtotal,
-          discount,
-          gst: gstAmount,
-          shipping: shippingCost,
-          total: grandTotal,
-          paymentMethod,
-          status: 'Order Placed'
+     if (paymentMethod === 'online') {
+       // Razorpay integration
+       const options = {
+         key: RAZORPAY_KEY_ID,
+         amount: grandTotal * 100, // Amount in paisa
+         currency: 'INR',
+         name: 'Sharma Army Store',
+         description: 'Purchase',
+         handler: function (response) {
+           // Payment success
+           toast({
+             title: "Payment Successful",
+             description: "Your payment has been processed successfully.",
+           });
+           placeOrder();
+         },
+         prefill: {
+           name: profile?.full_name || 'Customer',
+           email: user?.email || '',
+           contact: profile?.phone_number || '',
+         },
+         theme: {
+           color: '#F59E0B',
+         },
        };
-
-       // Get existing orders
-       const existingOrders = localStorage.getItem('orders') ? JSON.parse(localStorage.getItem('orders')) : [];
-       const updatedOrders = [...existingOrders, newOrder];
-       localStorage.setItem('orders', JSON.stringify(updatedOrders));
-
-       clearCart();
-       setIsProcessing(false);
-       navigate(`/order-confirmation/${orderId}`);
-
-     }, 2000);
+       const rzp = new window.Razorpay(options);
+       rzp.open();
+     } else {
+       // COD
+       setTimeout(() => {
+         placeOrder();
+       }, 2000);
+     }
   };
 
   return (
@@ -205,10 +261,18 @@ const Checkout = () => {
                           </div>
                        )}
 
-                       <div className="flex justify-between text-gray-600">
-                          <span>GST (18%)</span>
-                          <span>₹{gstAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                       </div>
+                       {gstAmount > 0 && (
+                         <div className="flex justify-between text-gray-600">
+                            <span>GST (18%)</span>
+                            <span>₹{gstAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                         </div>
+                       )}
+                       {codCharge > 0 && (
+                         <div className="flex justify-between text-gray-600">
+                            <span>COD Charge</span>
+                            <span>₹{codCharge.toLocaleString()}</span>
+                         </div>
+                       )}
                        <div className="flex justify-between text-gray-600">
                           <span>Shipping</span>
                           <span>₹{shippingCost.toLocaleString()}</span>
