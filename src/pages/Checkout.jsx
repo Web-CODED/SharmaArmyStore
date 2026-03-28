@@ -51,17 +51,8 @@ const Checkout = () => {
   const subtotal = getCartTotal();
   const discount = getDiscountAmount();
   const taxableAmount = subtotal - discount;
-  const gstRate = 0.18;
-  let gstAmount = 0;
-  let codCharge = 0;
-
-  if (paymentMethod === 'cod') {
-    gstAmount = taxableAmount * gstRate;
-    codCharge = 100;
-  }
-
-  const shippingCost = 100;
-  const grandTotal = taxableAmount + gstAmount + shippingCost + codCharge;
+  const shippingCost = paymentMethod === 'cod' ? 100 : 0;
+  const grandTotal = taxableAmount + shippingCost;
 
   const handleApplyCoupon = () => {
      const success = applyCoupon(couponInput);
@@ -84,8 +75,6 @@ const Checkout = () => {
        items: cartItems,
        subtotal,
        discount,
-       gst: gstAmount,
-       codCharge,
        shipping: shippingCost,
        total: grandTotal,
        paymentMethod,
@@ -261,18 +250,6 @@ const Checkout = () => {
                           </div>
                        )}
 
-                       {gstAmount > 0 && (
-                         <div className="flex justify-between text-gray-600">
-                            <span>GST (18%)</span>
-                            <span>₹{gstAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                         </div>
-                       )}
-                       {codCharge > 0 && (
-                         <div className="flex justify-between text-gray-600">
-                            <span>COD Charge</span>
-                            <span>₹{codCharge.toLocaleString()}</span>
-                         </div>
-                       )}
                        <div className="flex justify-between text-gray-600">
                           <span>Shipping</span>
                           <span>₹{shippingCost.toLocaleString()}</span>
