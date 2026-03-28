@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ShoppingCart, User, LogOut } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 
 const Navigation = () => {
@@ -11,39 +12,17 @@ const Navigation = () => {
   const navigate = useNavigate();
   const { cartItems } = useCart();
   const { toast } = useToast();
-  const [user, setUser] = useState(null);
+  const { user, profile, isAuthenticated, signOut } = useAuth();
 
-  useEffect(() => {
-    const checkUser = () => {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
-        setUser(null);
-      }
-    };
-    
-    // Check initially
-    checkUser();
-
-    // Listen for custom event 'authChange' to update state immediately
-    window.addEventListener('authChange', checkUser);
-    return () => window.removeEventListener('authChange', checkUser);
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('currentUser');
-    setUser(null);
-    
-    // Dispatch event to notify other components
-    window.dispatchEvent(new Event('authChange'));
-    
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out."
-    });
-    navigate('/login');
+  const handleLogout = async () => {
+    const result = await signOut();
+    if (result.success) {
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out."
+      });
+      navigate('/');
+    }
   };
 
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -123,13 +102,15 @@ const Navigation = () => {
             </Link>
 
             {/* User Auth */}
-            {user ? (
+            {isAuthenticated && user ? (
               <div className="flex items-center space-x-4">
                 <Link to="/profile" className="flex items-center space-x-2 text-gray-700 hover:text-blue-800">
                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
                       <User className="w-4 h-4 text-blue-800" />
                    </div>
-                   <span className="text-sm font-medium hidden xl:block">Hi, {user.name.split(' ')[0]}</span>
+                   <span className="text-sm font-medium hidden xl:block">
+                     Hi, {(profile?.full_name || user.email?.split('@')[0]).split(' ')[0]}
+                   </span>
                 </Link>
                 <button 
                   onClick={handleLogout}
@@ -200,7 +181,7 @@ const Navigation = () => {
                 ))}
                 
                 <div className="border-t border-gray-100 pt-4 mt-2 px-4">
-                  {user ? (
+                  {isAuthenticated && user ? (
                     <div className="space-y-3">
                        <Link 
                           to="/profile" 

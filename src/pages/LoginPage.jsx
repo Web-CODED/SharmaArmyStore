@@ -5,10 +5,12 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -31,7 +33,7 @@ const LoginPage = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -41,30 +43,34 @@ const LoginPage = () => {
 
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      // Mock Login Logic
-      const user = {
-        id: 'user_12345',
-        name: 'Sharma Customer', // Placeholder name since we don't have DB
-        email: formData.email,
-        joinDate: '15/08/2025'
-      };
+    try {
+      const result = await signIn(formData.email, formData.password);
       
-      localStorage.setItem('token', 'mock_jwt_token_' + Date.now());
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      
-      // Dispatch auth event
-      window.dispatchEvent(new Event('authChange'));
-
+      if (result.success) {
+        toast({
+          title: "Login Successful!",
+          description: "Welcome back to Sharma Army Store.",
+        });
+        
+        navigate('/profile');
+      } else {
+        setErrors({ submit: result.error });
+        toast({
+          title: "Login Failed",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      setErrors({ submit: err.message });
       toast({
-        title: "Login Successful!",
-        description: "Welcome back to Sharma Army Store.",
+        title: "Error",
+        description: err.message,
+        variant: "destructive"
       });
-      
+    } finally {
       setIsLoading(false);
-      navigate('/profile');
-    }, 1500);
+    }
   };
 
   return (
