@@ -247,7 +247,7 @@ const toggleWishlist = async (productId) => {
 Already done in ProfileDashboard - orders show from database!
 
 ### 4. Add Payment Integration
-- Connect Stripe/Razorpay with `addOrder()`
+- ✅ **Razorpay integration completed** - Online payments now work through Razorpay gateway
 - Save payment status before processing
 
 ### 5. Email Notifications

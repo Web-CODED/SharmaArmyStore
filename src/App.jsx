@@ -19,11 +19,7 @@ import OrderConfirmation from '@/pages/OrderConfirmation';
 import OrderDetail from '@/pages/OrderDetail';
 import RefundReturnPolicy from '@/pages/RefundReturnPolicy';
 import PrivacyPolicy from '@/components/PrivacyPolicy';
-import TermsAndConditions from '@/components/TermsAndConditions';
-import { Toaster } from '@/components/ui/toaster';
-import LiveSalesCounter from '@/components/LiveSalesCounter';
-// import RepublicDayPopup from '@/components/RepublicDayPopup';
-import ChatBot from '@/components/ChatBot';
+import AdminPanel from '@/pages/AdminPanel';
 
 function App() {
   return (
@@ -56,6 +52,7 @@ function App() {
                   <Route path="/refund-policy" element={<RefundReturnPolicy />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms-conditions" element={<TermsAndConditions />} />
+                  <Route path="/admin" element={<AdminPanel />} />
                 </Routes>
               </motion.main>
             </AnimatePresence>

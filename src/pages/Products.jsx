@@ -3,17 +3,50 @@ import { Helmet } from 'react-helmet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Star, Search, SlidersHorizontal, X } from 'lucide-react';
-import { categories, getProductsByCategory, products as allProducts } from '@/data/products';
+import { supabase } from '@/config/supabase';
 import { Button } from '@/components/ui/button';
 import GoogleAdSense from '@/components/GoogleAdSense';
 
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState(allProducts);
+  const [allProducts, setAllProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 10000 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    filterProducts();
+  }, [selectedCategory, searchQuery, priceRange, allProducts]);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setAllProducts(data || []);
+
+      // Extract unique categories
+      const uniqueCategories = [...new Set(data?.map(p => p.category).filter(Boolean) || [])];
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterProducts = () => {
     let result = allProducts;
 
     // Filter by Category
@@ -25,8 +58,8 @@ const Products = () => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(product => 
-        product.name.toLowerCase().includes(query) || 
-        product.description.toLowerCase().includes(query)
+        product.name?.toLowerCase().includes(query) || 
+        product.description?.toLowerCase().includes(query)
       );
     }
 
@@ -34,7 +67,7 @@ const Products = () => {
     result = result.filter(product => product.price >= priceRange.min && product.price <= priceRange.max);
 
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery, priceRange]);
+  };
 
   const clearSearch = () => {
     setSearchQuery("");
@@ -182,7 +215,11 @@ const Products = () => {
                 </h2>
               </motion.div>
 
-              {filteredProducts.length === 0 ? (
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="text-lg">Loading products...</div>
+                </div>
+              ) : filteredProducts.length === 0 ? (
                  <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                        <Search className="w-8 h-8 text-gray-400" />
@@ -209,13 +246,13 @@ const Products = () => {
                           <div className="bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-105 h-full flex flex-col">
                             <div className="relative h-64 overflow-hidden flex-shrink-0">
                               <img
-                                src={product.image}
+                                src={product.images?.[0] || '/placeholder-image.jpg'}
                                 alt={product.name}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               />
                               <div className="absolute top-4 right-4 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-sm font-bold flex items-center">
                                 <Star className="w-4 h-4 mr-1 fill-gray-900" />
-                                {product.rating}
+                                {product.rating || 4.5}
                               </div>
                             </div>
                             <div className="p-6 flex flex-col flex-1">
@@ -228,7 +265,7 @@ const Products = () => {
                               <div className="flex items-center justify-between mt-auto">
                               <p className=" text-2xl font-bold text-blue-800 mb-4">
                                 
-                                  ₹{product.price.toLocaleString()}
+                                  ₹{product.price?.toLocaleString()}
                                 </p>
                                 <Button className="bg-gradient-to-r from-blue-800 to-blue-600 hover:from-blue-900 hover:to-blue-700">
                                   View Details

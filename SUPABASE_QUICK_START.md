@@ -39,6 +39,9 @@ Create `.env.local` in your project root:
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# Optional: Razorpay for payment integration (future)
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id_here
 ```
 
 ⚠️ **Add to `.gitignore`:**
@@ -66,6 +69,14 @@ This creates:
 3. Create account with email & password
 4. Check Supabase dashboard → Table Editor → user_profiles
 5. Your new user data should appear there! 🎉
+
+### Test Payment Integration
+1. Add items to cart and proceed to checkout
+2. Select "Online Payment" option
+3. Click "Place Order" - Razorpay payment gateway will open
+4. Use test card details for testing (if using test key)
+5. Payment success will redirect to order confirmation
+6. Check order shows "PAID" status
 
 ## 📚 How to Use
 

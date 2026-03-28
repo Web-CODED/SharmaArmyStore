@@ -93,6 +93,42 @@ CREATE TABLE IF NOT EXISTS activity_log (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create products table for admin-managed products
+CREATE TABLE IF NOT EXISTS products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  price NUMERIC(10,2) NOT NULL,
+  original_price NUMERIC(10,2),
+  category VARCHAR(100),
+  subcategory VARCHAR(100),
+  images JSONB, -- Array of image URLs
+  sizes JSONB, -- Array of available sizes
+  colors JSONB, -- Array of available colors
+  stock_quantity INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create banners table for promotional banners
+CREATE TABLE IF NOT EXISTS banners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  image_url TEXT NOT NULL,
+  occasion VARCHAR(100), -- e.g., 'republic_day', 'diwali', 'general'
+  is_active BOOLEAN DEFAULT TRUE,
+  display_order INTEGER DEFAULT 0,
+  start_date DATE,
+  end_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add is_admin column to user_profiles
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_addresses ENABLE ROW LEVEL SECURITY;
@@ -100,6 +136,8 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wishlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE banners ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS Policies for user_profiles
 CREATE POLICY "Users can view their own profile"
@@ -173,6 +211,36 @@ CREATE POLICY "Users can view their own activity"
   ON activity_log FOR SELECT
   USING (auth.uid() = user_id);
 
+-- Create RLS Policies for products
+CREATE POLICY "Anyone can view active products"
+  ON products FOR SELECT
+  USING (is_active = TRUE);
+
+CREATE POLICY "Admins can manage products"
+  ON products FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.id = auth.uid()
+      AND user_profiles.is_admin = TRUE
+    )
+  );
+
+-- Create RLS Policies for banners
+CREATE POLICY "Anyone can view active banners"
+  ON banners FOR SELECT
+  USING (is_active = TRUE);
+
+CREATE POLICY "Admins can manage banners"
+  ON banners FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.id = auth.uid()
+      AND user_profiles.is_admin = TRUE
+    )
+  );
+
 -- Create indexes for performance
 CREATE INDEX idx_user_addresses_user_id ON user_addresses(user_id);
 CREATE INDEX idx_orders_user_id ON orders(user_id);
@@ -200,4 +268,10 @@ CREATE TRIGGER update_user_addresses_updated_at BEFORE UPDATE ON user_addresses
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_banners_updated_at BEFORE UPDATE ON banners
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

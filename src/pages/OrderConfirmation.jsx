@@ -64,6 +64,14 @@ const OrderConfirmation = () => {
                           <span className="text-gray-600">Payment:</span>
                           <span className="font-medium uppercase">{order.paymentMethod}</span>
                        </div>
+                       {order.paymentStatus && (
+                         <div className="flex justify-between mb-1">
+                            <span className="text-gray-600">Payment Status:</span>
+                            <span className={`font-medium ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-600'}`}>
+                               {order.paymentStatus === 'paid' ? 'PAID' : 'PENDING'}
+                            </span>
+                         </div>
+                       )}
                        <div className="flex justify-between">
                           <span className="text-gray-600">Total:</span>
                           <span className="font-bold text-blue-800">₹{order.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>

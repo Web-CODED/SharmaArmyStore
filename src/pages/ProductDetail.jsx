@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Star, Minus, Plus, ShoppingCart, ArrowLeft, CheckCircle2, ThumbsUp } from 'lucide-react';
-import { getProductById } from '@/data/products';
+import { supabase } from '@/config/supabase';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useCart } from '@/context/CartContext';
@@ -22,24 +22,53 @@ const reviewData = [
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const product = getProductById(id);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || null);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [showRefundPolicy, setShowRefundPolicy] = useState(false);
   const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
-    if (product) {
-      const shuffled = [...reviewData].sort(() => 0.5 - Math.random());
-      setReviews(shuffled.slice(0, Math.floor(Math.random() * 3) + 5)); 
-      if (product.sizes) {
-          setSelectedSize(product.sizes[0]);
+    fetchProduct();
+  }, [id]);
+
+  const fetchProduct = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .eq('is_active', true)
+        .single();
+
+      if (error) throw error;
+      setProduct(data);
+
+      if (data?.sizes && data.sizes.length > 0) {
+        setSelectedSize(data.sizes[0]);
       }
+
+      // Set reviews
+      const shuffled = [...reviewData].sort(() => 0.5 - Math.random());
+      setReviews(shuffled.slice(0, Math.floor(Math.random() * 3) + 5));
+    } catch (error) {
+      console.error('Error fetching product:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [product]);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading product...</div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

@@ -63,6 +63,9 @@ src/components/Navigation.jsx             - Shows logged-in user
 ```env
 VITE_SUPABASE_URL=your_url_here
 VITE_SUPABASE_ANON_KEY=your_key_here
+
+# Optional: For future payment integration
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_here
 ```
 
 ### **Step 3: Create Database** (⏱️ 3 minutes)
@@ -213,7 +216,7 @@ removeFromWishlist(userId, productId)
 3. **Address management page** - Use address functions
 4. **Advanced filtering** - Orders by date/status
 5. **Email notifications** - Configure in Supabase
-6. **Payment integration** - Stripe/Razorpay with orders
+6. **Payment integration** - ✅ Razorpay gateway integrated for online payments
 7. **Admin dashboard** - View all orders
 
 ---

@@ -46,6 +46,11 @@ if [ -f ".env.local" ]; then
   else
     echo "❌ VITE_SUPABASE_ANON_KEY not found"
   fi
+  if grep -q "VITE_RAZORPAY_KEY_ID" .env.local; then
+    echo "✅ VITE_RAZORPAY_KEY_ID set (optional)"
+  else
+    echo "ℹ️  VITE_RAZORPAY_KEY_ID not set (optional for payment integration)"
+  fi
 else
   echo "⚠️  .env.local not found - Create it with your Supabase credentials"
 fi
