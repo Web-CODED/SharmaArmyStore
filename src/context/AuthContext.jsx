@@ -72,16 +72,47 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (error) {
-        if (error.code !== 'PGRST116') {
-          // PGRST116 = no rows returned
+        if (error.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          await createUserProfile(userId);
+          return;
+        } else {
           console.error('Error fetching profile:', error);
+          return;
         }
-        return;
       }
 
       setProfile(data);
     } catch (err) {
       console.error('Error fetching user profile:', err);
+    }
+  };
+
+  const createUserProfile = async (userId) => {
+    try {
+      // Get user data from auth
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw userError;
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert([
+          {
+            id: userId,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.email,
+            phone_number: user.user_metadata?.phone_number,
+            gender: user.user_metadata?.gender,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProfile(data);
+    } catch (err) {
+      console.error('Error creating user profile:', err);
     }
   };
 
