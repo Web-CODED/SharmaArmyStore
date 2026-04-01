@@ -135,38 +135,70 @@ export const AuthProvider = ({ children }) => {
 
       if (authError) throw authError;
 
-      // Create user profile (but don't fail signup if this fails)
-      // The database trigger will auto-create the profile on signup
       if (authData.user) {
-        try {
-          const { error: profileError } = await supabase
-            .from('user_profiles')
-            .insert([
-              {
-                id: authData.user.id,
-                email,
-                full_name: fullName,
-                phone_number: phoneNumber,
-                gender: gender,
-                created_at: new Date().toISOString(),
-              },
-            ]);
-
-          // Log profile error but don't throw - trigger should handle it
-          if (profileError) {
-            console.warn('Profile creation note:', profileError.message);
-          }
-        } catch (profileErr) {
-          console.warn('Profile creation warning:', profileErr.message);
-          // Continue anyway - the trigger will create it
-        }
-
         setUser(authData.user);
         
-        // Wait a moment for the trigger to create the profile
-        setTimeout(() => {
-          fetchUserProfile(authData.user.id);
-        }, 500);
+        // Wait for the database trigger to create the profile
+        // The trigger fires when the auth user is inserted, but we need to wait for it
+        let profileCreated = false;
+        let attempts = 0;
+        const maxAttempts = 10; // Try for up to 2 seconds
+
+        while (!profileCreated && attempts < maxAttempts) {
+          attempts++;
+          
+          try {
+            const { data: existingProfile, error: fetchError } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .eq('id', authData.user.id)
+              .single();
+
+            if (fetchError?.code === 'PGRST116') {
+              // Profile doesn't exist yet, try again
+              await new Promise(resolve => setTimeout(resolve, 200));
+              continue;
+            }
+
+            if (existingProfile) {
+              profileCreated = true;
+              await fetchUserProfile(authData.user.id);
+              break;
+            }
+          } catch (err) {
+            // Fetch error, will retry
+            await new Promise(resolve => setTimeout(resolve, 200));
+            continue;
+          }
+        }
+
+        // If trigger didn't create it, create it manually as fallback
+        if (!profileCreated) {
+          console.warn('Trigger did not create profile, creating manually...');
+          try {
+            const { error: insertError } = await supabase
+              .from('user_profiles')
+              .insert([
+                {
+                  id: authData.user.id,
+                  email,
+                  full_name: fullName,
+                  phone_number: phoneNumber,
+                  gender: gender,
+                },
+              ]);
+
+            if (insertError) {
+              console.error('Manual profile creation failed:', insertError);
+              throw new Error(`Failed to create user profile: ${insertError.message}`);
+            }
+
+            await fetchUserProfile(authData.user.id);
+          } catch (err) {
+            console.error('Profile creation fallback error:', err);
+            throw err;
+          }
+        }
       }
 
       return { success: true, user: authData.user };

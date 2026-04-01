@@ -141,3 +141,99 @@ export const removeFromWishlist = async (userId, productId) => {
 
   if (error) throw error;
 };
+
+// Debug & Verification Functions
+/**
+ * Verify that a user's profile data is properly saved
+ * Returns the profile data if it exists, null otherwise
+ */
+export const verifyUserProfile = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id, email, full_name, phone_number, gender, created_at')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Profile verification error:', error);
+      return null;
+    }
+
+    console.log('✅ User profile found:', data);
+    return data;
+  } catch (err) {
+    console.error('Error verifying profile:', err);
+    return null;
+  }
+};
+
+/**
+ * Get user's auth metadata to verify data was stored correctly
+ * Only works if you're logged in as that user
+ */
+export const getUserAuthMetadata = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      console.error('Could not fetch auth user:', error);
+      return null;
+    }
+
+    const metadata = {
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name,
+      phone_number: user.user_metadata?.phone_number,
+      gender: user.user_metadata?.gender,
+    };
+
+    console.log('📋 Auth user metadata:', metadata);
+    return metadata;
+  } catch (err) {
+    console.error('Error getting auth metadata:', err);
+    return null;
+  }
+};
+
+/**
+ * Manually create/update user profile from auth metadata
+ * Useful for fixing profiles that weren't created by trigger
+ */
+export const syncProfileFromAuth = async () => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      throw new Error('Could not get current user');
+    }
+
+    const { data, error: upsertError } = await supabase
+      .from('user_profiles')
+      .upsert([
+        {
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || user.email,
+          phone_number: user.user_metadata?.phone_number,
+          gender: user.user_metadata?.gender,
+          updated_at: new Date().toISOString(),
+        },
+      ], {
+        onConflict: 'id'
+      })
+      .select()
+      .single();
+
+    if (upsertError) {
+      throw upsertError;
+    }
+
+    console.log('✅ Profile synced from auth:', data);
+    return data;
+  } catch (err) {
+    console.error('Error syncing profile:', err);
+    throw err;
+  }
+};
