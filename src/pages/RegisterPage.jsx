@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, CheckCircle, AlertCircle, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -17,7 +17,9 @@ const RegisterPage = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phoneNumber: '',
+    gender: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -40,6 +42,13 @@ const RegisterPage = () => {
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
+
+    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = "Phone Number is required";
+    else if (!/^[6-9]\d{9}$/.test(formData.phoneNumber.replace(/\s+/g, ''))) {
+      newErrors.phoneNumber = "Please enter a valid 10-digit Indian phone number";
+    }
+
+    if (!formData.gender) newErrors.gender = "Please select your gender";
     
     return newErrors;
   };
@@ -55,7 +64,7 @@ const RegisterPage = () => {
     setIsLoading(true);
     
     try {
-      const result = await signUp(formData.email, formData.password, formData.name);
+      const result = await signUp(formData.email, formData.password, formData.name, formData.phoneNumber, formData.gender);
       
       if (result.success) {
         toast({
@@ -191,6 +200,47 @@ const RegisterPage = () => {
                   />
                 </div>
                 {errors.confirmPassword && <p className="mt-1 text-sm text-red-600 flex items-center"><AlertCircle className="w-3 h-3 mr-1"/>{errors.confirmPassword}</p>}
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Phone Number</label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    className={`block w-full pl-10 pr-3 py-2 border ${errors.phoneNumber ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                    placeholder="9876543210"
+                  />
+                </div>
+                {errors.phoneNumber && <p className="mt-1 text-sm text-red-600 flex items-center"><AlertCircle className="w-3 h-3 mr-1"/>{errors.phoneNumber}</p>}
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender</label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <select
+                    id="gender"
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    className={`block w-full pl-3 pr-3 py-2 border ${errors.gender ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer-not-to-say">Prefer not to say</option>
+                  </select>
+                </div>
+                {errors.gender && <p className="mt-1 text-sm text-red-600 flex items-center"><AlertCircle className="w-3 h-3 mr-1"/>{errors.gender}</p>}
               </div>
 
               <Button

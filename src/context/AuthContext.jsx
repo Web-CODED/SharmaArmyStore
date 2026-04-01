@@ -72,11 +72,14 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (error) {
-        if (error.code !== 'PGRST116') {
-          // PGRST116 = no rows returned
+        if (error.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          await createUserProfile(userId);
+          return;
+        } else {
           console.error('Error fetching profile:', error);
+          return;
         }
-        return;
       }
 
       setProfile(data);
@@ -85,7 +88,35 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signUp = async (email, password, fullName) => {
+  const createUserProfile = async (userId) => {
+    try {
+      // Get user data from auth
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw userError;
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert([
+          {
+            id: userId,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.email,
+            phone_number: user.user_metadata?.phone_number,
+            gender: user.user_metadata?.gender,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProfile(data);
+    } catch (err) {
+      console.error('Error creating user profile:', err);
+    }
+  };
+
+  const signUp = async (email, password, fullName, phoneNumber, gender) => {
     try {
       setError(null);
 
@@ -93,27 +124,81 @@ export const AuthProvider = ({ children }) => {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone_number: phoneNumber,
+            gender: gender,
+          },
+        },
       });
 
       if (authError) throw authError;
 
-      // Create user profile
       if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              email,
-              full_name: fullName,
-              created_at: new Date().toISOString(),
-            },
-          ]);
-
-        if (profileError) throw profileError;
-
         setUser(authData.user);
-        await fetchUserProfile(authData.user.id);
+        
+        // Wait for the database trigger to create the profile
+        // The trigger fires when the auth user is inserted, but we need to wait for it
+        let profileCreated = false;
+        let attempts = 0;
+        const maxAttempts = 10; // Try for up to 2 seconds
+
+        while (!profileCreated && attempts < maxAttempts) {
+          attempts++;
+          
+          try {
+            const { data: existingProfile, error: fetchError } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .eq('id', authData.user.id)
+              .single();
+
+            if (fetchError?.code === 'PGRST116') {
+              // Profile doesn't exist yet, try again
+              await new Promise(resolve => setTimeout(resolve, 200));
+              continue;
+            }
+
+            if (existingProfile) {
+              profileCreated = true;
+              await fetchUserProfile(authData.user.id);
+              break;
+            }
+          } catch (err) {
+            // Fetch error, will retry
+            await new Promise(resolve => setTimeout(resolve, 200));
+            continue;
+          }
+        }
+
+        // If trigger didn't create it, create it manually as fallback
+        if (!profileCreated) {
+          console.warn('Trigger did not create profile, creating manually...');
+          try {
+            const { error: insertError } = await supabase
+              .from('user_profiles')
+              .insert([
+                {
+                  id: authData.user.id,
+                  email,
+                  full_name: fullName,
+                  phone_number: phoneNumber,
+                  gender: gender,
+                },
+              ]);
+
+            if (insertError) {
+              console.error('Manual profile creation failed:', insertError);
+              throw new Error(`Failed to create user profile: ${insertError.message}`);
+            }
+
+            await fetchUserProfile(authData.user.id);
+          } catch (err) {
+            console.error('Profile creation fallback error:', err);
+            throw err;
+          }
+        }
       }
 
       return { success: true, user: authData.user };

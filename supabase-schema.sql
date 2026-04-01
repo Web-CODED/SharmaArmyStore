@@ -279,3 +279,30 @@ CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
 
 CREATE TRIGGER update_banners_updated_at BEFORE UPDATE ON banners
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger for auto-creating user_profiles when a new auth user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, email, full_name, phone_number, gender, created_at, updated_at)
+    VALUES (
+      new.id,
+      new.email,
+      COALESCE(new.raw_user_meta_data->>'full_name', new.email),
+      new.raw_user_meta_data->>'phone_number',
+      new.raw_user_meta_data->>'gender',
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP
+    )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop existing trigger if it exists to avoid conflicts
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Create trigger to handle new signups
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
