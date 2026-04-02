@@ -21,7 +21,7 @@ const Navigation = () => {
         title: "Logged Out",
         description: "You have been successfully logged out."
       });
-      navigate('/');
+      navigate('/', { replace: true });
     }
   };
 

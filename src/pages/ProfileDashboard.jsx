@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Package, LogOut, Clock, CheckCircle, Truck, ShoppingBag, ChevronRight, Mail, Phone, MapPin, Edit2, Plus, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -111,7 +111,9 @@ const ProfileDashboard = () => {
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <>

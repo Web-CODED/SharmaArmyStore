@@ -24,6 +24,7 @@ import TermsAndConditions from '@/components/TermsAndConditions';
 import AdminPanel from '@/pages/AdminPanel';
 import LiveSalesCounter from '@/components/LiveSalesCounter';
 import ChatBot from '@/components/ChatBot';
+import NotFound from '@/components/NotFound';
 import { Toaster } from '@/components/ui/toaster';
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms-conditions" element={<TermsAndConditions />} />
                   <Route path="/admin" element={<AdminPanel />} />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </motion.main>
             </AnimatePresence>
