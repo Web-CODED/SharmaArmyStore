@@ -327,6 +327,12 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setProfile(null);
       setSession(null);
+
+      // Ensure route state and history are reset
+      if (typeof window !== 'undefined') {
+        window.location.replace('/');
+      }
+
       return { success: true };
     } catch (err) {
       setError(err.message);
