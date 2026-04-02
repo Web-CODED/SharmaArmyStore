@@ -31,11 +31,18 @@ const ProfileDashboard = () => {
       return;
     }
 
-    if (user && profile) {
+    if (user) {
       loadUserData();
+    } else {
+      setIsLoadingData(false);
+      setOrders([]);
+      setAddresses([]);
+    }
+
+    if (profile) {
       setFormData({
-        full_name: profile.full_name || '',
-        phone_number: profile.phone_number || '',
+        full_name: profile.full_name || user?.user_metadata?.full_name || '',
+        phone_number: profile.phone_number || user?.user_metadata?.phone_number || '',
         date_of_birth: profile.date_of_birth || ''
       });
     }
@@ -127,11 +134,17 @@ const ProfileDashboard = () => {
                   <div className="w-24 h-24 rounded-full bg-white mx-auto mb-4 flex items-center justify-center border-4 border-blue-200">
                     <User className="w-12 h-12 text-blue-800" />
                   </div>
-                  <h2 className="text-xl font-bold text-white">{profile?.full_name || user?.email?.split('@')[0]}</h2>
+                  <h2 className="text-xl font-bold text-white">
+                    {profile?.full_name
+                      || user?.user_metadata?.full_name
+                      || (user?.email?.split('@')[0] || 'Customer')}
+                  </h2>
                   <p className="text-blue-100 text-sm">{user?.email}</p>
-                  {profile?.phone_number && (
-                    <p className="text-blue-100 text-sm">{profile.phone_number}</p>
-                  )}
+                  <p className="text-blue-100 text-sm">
+                    {profile?.phone_number
+                      || user?.user_metadata?.phone_number
+                      || 'Phone not set'}
+                  </p>
                 </div>
                 <div className="p-4 space-y-2">
                    <button 

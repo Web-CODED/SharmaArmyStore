@@ -289,12 +289,16 @@ BEGIN
       new.id,
       new.email,
       COALESCE(new.raw_user_meta_data->>'full_name', new.email),
-      new.raw_user_meta_data->>'phone_number',
-      new.raw_user_meta_data->>'gender',
+      COALESCE(new.raw_user_meta_data->>'phone_number', ''),
+      COALESCE(new.raw_user_meta_data->>'gender', ''),
       CURRENT_TIMESTAMP,
       CURRENT_TIMESTAMP
     )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = COALESCE(new.raw_user_meta_data->>'full_name', excluded.full_name),
+    phone_number = COALESCE(new.raw_user_meta_data->>'phone_number', excluded.phone_number),
+    gender = COALESCE(new.raw_user_meta_data->>'gender', excluded.gender),
+    updated_at = CURRENT_TIMESTAMP;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

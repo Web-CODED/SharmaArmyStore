@@ -67,17 +67,29 @@ const RegisterPage = () => {
       const result = await signUp(formData.email, formData.password, formData.name, formData.phoneNumber, formData.gender);
       
       if (result.success) {
-        toast({
-          title: "Registration Successful!",
-          description: `Welcome, ${formData.name}! Your account has been created.`,
-        });
-        
-        navigate('/profile');
+        if (result.needsEmailVerification) {
+          toast({
+            title: "Confirm your email",
+            description: "We sent a verification link to your email. Please verify and then log in.",
+          });
+          navigate('/login');
+        } else {
+          toast({
+            title: "Registration Successful!",
+            description: `Welcome, ${formData.name}! Your account has been created.`,
+          });
+          navigate('/profile');
+        }
       } else {
         setErrors({ submit: result.error });
+        let description = result.error;
+        if (result.error?.toLowerCase().includes('rate limit')) {
+          description = 'Too many signup attempts. Please wait 5 minutes and try again.';
+        }
+
         toast({
           title: "Registration Failed",
-          description: result.error,
+          description,
           variant: "destructive"
         });
       }

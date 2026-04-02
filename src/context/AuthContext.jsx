@@ -82,6 +82,38 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
+      const { data: authUserResponse } = await supabase.auth.getUser();
+      const authUser = authUserResponse?.user;
+
+      // If profile is incomplete or still contains email as name, patch from metadata
+      const patch = {};
+      if (authUser) {
+        const metadata = authUser.user_metadata || {};
+
+        if (!data.full_name || data.full_name === authUser.email) {
+          if (metadata.full_name) patch.full_name = metadata.full_name;
+        }
+
+        if (!data.phone_number && metadata.phone_number) patch.phone_number = metadata.phone_number;
+        if (!data.gender && metadata.gender) patch.gender = metadata.gender;
+      }
+
+      if (Object.keys(patch).length > 0) {
+        const { data: updatedData, error: updateError } = await supabase
+          .from('user_profiles')
+          .update(patch)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Error patching incomplete profile:', updateError);
+        } else {
+          setProfile(updatedData);
+          return;
+        }
+      }
+
       setProfile(data);
     } catch (err) {
       console.error('Error fetching user profile:', err);
@@ -137,20 +169,39 @@ export const AuthProvider = ({ children }) => {
 
       if (authData.user) {
         setUser(authData.user);
-        
+
+        // Log metadata for debugging.
+        console.log('Auth user created with metadata:', authData.user.user_metadata);
+
+        // If user is email-confirmation flow, session may not be active yet.
+        const session = authData.session || null;
+        const needsEmailVerification = !session;
+
+        if (needsEmailVerification) {
+          console.info('Email verification required before profile row creation can be confirmed.');
+          return {
+            success: true,
+            user: authData.user,
+            needsEmailVerification: true,
+          };
+        }
+
+        // Wait a bit for the trigger to fire
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Wait for the database trigger to create the profile
         // The trigger fires when the auth user is inserted, but we need to wait for it
         let profileCreated = false;
         let attempts = 0;
-        const maxAttempts = 10; // Try for up to 2 seconds
+        const maxAttempts = 15; // Try for up to 3 seconds
 
         while (!profileCreated && attempts < maxAttempts) {
           attempts++;
-          
+
           try {
             const { data: existingProfile, error: fetchError } = await supabase
               .from('user_profiles')
-              .select('id')
+              .select('*')
               .eq('id', authData.user.id)
               .single();
 
@@ -162,6 +213,7 @@ export const AuthProvider = ({ children }) => {
 
             if (existingProfile) {
               profileCreated = true;
+              console.log('Profile created by trigger:', existingProfile);
               await fetchUserProfile(authData.user.id);
               break;
             }
@@ -172,31 +224,67 @@ export const AuthProvider = ({ children }) => {
           }
         }
 
-        // If trigger didn't create it, create it manually as fallback
+        // If trigger didn't create it, skip manual insert if no authenticated session yet (RLS would deny this from client)
         if (!profileCreated) {
-          console.warn('Trigger did not create profile, creating manually...');
-          try {
-            const { error: insertError } = await supabase
-              .from('user_profiles')
-              .insert([
-                {
-                  id: authData.user.id,
-                  email,
-                  full_name: fullName,
-                  phone_number: phoneNumber,
-                  gender: gender,
-                },
-              ]);
+          console.warn('Trigger did not create profile yet. Skipping manual client-side profile insert until authenticated session is available.');
 
-            if (insertError) {
-              console.error('Manual profile creation failed:', insertError);
-              throw new Error(`Failed to create user profile: ${insertError.message}`);
+          const { data: sessionData } = await supabase.auth.getSession();
+          const activeUserId = sessionData?.session?.user?.id;
+
+          if (activeUserId === authData.user.id) {
+            try {
+              const { data: insertedProfile, error: insertError } = await supabase
+                .from('user_profiles')
+                .insert([
+                  {
+                    id: authData.user.id,
+                    email,
+                    full_name: fullName,
+                    phone_number: phoneNumber,
+                    gender: gender,
+                  },
+                ])
+                .select()
+                .single();
+
+              if (insertError) {
+                console.error('Manual profile creation failed:', insertError);
+                throw new Error(`Failed to create user profile: ${insertError.message}`);
+              }
+
+              console.log('Profile created manually:', insertedProfile);
+              await fetchUserProfile(authData.user.id);
+            } catch (err) {
+              console.error('Profile creation fallback error:', err);
+              throw err;
             }
+          } else {
+            console.warn('No active session yet, cannot manually insert profile due to RLS. Profile should be created by auth trigger; verifying after next login.');
+          }
+        } else {
+          // Profile exists, but double-check it has all fields
+          const { data: currentProfile } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
 
-            await fetchUserProfile(authData.user.id);
-          } catch (err) {
-            console.error('Profile creation fallback error:', err);
-            throw err;
+          if (currentProfile && (!currentProfile.phone_number || !currentProfile.gender)) {
+            console.warn('Profile missing phone_number or gender, updating...');
+            const { error: updateError } = await supabase
+              .from('user_profiles')
+              .update({
+                phone_number: phoneNumber,
+                gender: gender,
+              })
+              .eq('id', authData.user.id);
+
+            if (updateError) {
+              console.error('Profile update failed:', updateError);
+            } else {
+              console.log('Profile updated with missing fields');
+              await fetchUserProfile(authData.user.id);
+            }
           }
         }
       }
