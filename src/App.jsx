@@ -13,6 +13,7 @@ import ProductDetail from '@/pages/ProductDetail';
 import ContactUs from '@/pages/ContactUs';
 import RegisterPage from '@/pages/RegisterPage';
 import LoginPage from '@/pages/LoginPage';
+import AuthCallback from '@/pages/AuthCallback';
 import ProfileDashboard from '@/pages/ProfileDashboard';
 import Cart from '@/pages/Cart';
 import Checkout from '@/pages/Checkout';
@@ -51,6 +52,7 @@ function App() {
                   <Route path="/contact" element={<ContactUs />} />
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/login" element={<LoginPage />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/profile" element={<ProfileDashboard />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />

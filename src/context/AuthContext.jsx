@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/config/supabase';
+import supabase from '@/utils/supabase';
 
 const AuthContext = createContext();
 
@@ -157,6 +157,7 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
         options: {
+          emailRedirectTo: `${import.meta.env.VITE_SITE_URL}/auth/callback`,
           data: {
             full_name: fullName,
             phone_number: phoneNumber,

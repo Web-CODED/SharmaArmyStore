@@ -7,7 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { RAZORPAY_KEY_ID } from '@/config/supabase';
+import { RAZORPAY_KEY_ID } from '@/utils/supabase';
 
 const Checkout = () => {
   const navigate = useNavigate();

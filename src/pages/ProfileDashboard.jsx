@@ -5,13 +5,14 @@ import { motion } from 'framer-motion';
 import { User, Package, LogOut, Clock, CheckCircle, Truck, ShoppingBag, ChevronRight, Mail, Phone, MapPin, Edit2, Plus, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/context/AuthContext';
+import supabase from '@/utils/supabase';
 import { getOrders, getUserAddresses } from '@/lib/supabase-queries';
 
 const ProfileDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, profile, loading, isAuthenticated, signOut, updateProfile } = useAuth();
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
@@ -24,42 +25,71 @@ const ProfileDashboard = () => {
     date_of_birth: ''
   });
 
-  // Load user data when authenticated
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      navigate('/login');
-      return;
+    const loadUser = async () => {
+      try {
+        // Get session
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!session) {
+          navigate('/login')
+          return
+        }
+
+        // Get profile from user_profiles table
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (error) throw error
+        setUser(profile)
+
+        // Load additional data
+        loadUserData(session.user.id)
+
+        // Set form data
+        setFormData({
+          full_name: profile.full_name || '',
+          phone_number: profile.phone_number || '',
+          date_of_birth: profile.date_of_birth || ''
+        })
+
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false) // always stops spinner
+      }
     }
 
-    if (user) {
-      loadUserData();
-    } else {
-      setIsLoadingData(false);
-      setOrders([]);
-      setAddresses([]);
-    }
+    loadUser()
 
-    if (profile) {
-      setFormData({
-        full_name: profile.full_name || user?.user_metadata?.full_name || '',
-        phone_number: profile.phone_number || user?.user_metadata?.phone_number || '',
-        date_of_birth: profile.date_of_birth || ''
-      });
-    }
-  }, [user, profile, isAuthenticated, loading]);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate('/login')
+      } else {
+        loadUser()
+      }
+    })
 
-  const loadUserData = async () => {
+    return () => subscription.unsubscribe()
+  }, [])
+
+  if (loading) return <div>Loading...</div>
+  if (!user) return null
+
+  const loadUserData = async (userId) => {
     try {
       setIsLoadingData(true);
-      if (user) {
-        // Fetch orders
-        const userOrders = await getOrders(user.id);
-        setOrders(userOrders || []);
+      // Fetch orders
+      const userOrders = await getOrders(userId);
+      setOrders(userOrders || []);
 
-        // Fetch addresses
-        const userAddresses = await getUserAddresses(user.id);
-        setAddresses(userAddresses || []);
-      }
+      // Fetch addresses
+      const userAddresses = await getUserAddresses(userId);
+      setAddresses(userAddresses || []);
     } catch (error) {
       console.error('Error loading user data:', error);
       toast({
@@ -73,27 +103,33 @@ const ProfileDashboard = () => {
   };
 
   const handleLogout = async () => {
-    const result = await signOut();
-    if (result.success) {
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out."
-      });
-      navigate('/');
-    }
+    await supabase.auth.signOut()
+    navigate('/')
+    window.location.reload() // clears all state
   };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      const result = await updateProfile(formData);
-      if (result.success) {
-        toast({
-          title: "Profile Updated",
-          description: "Your profile has been updated successfully."
-        });
-        setEditingProfile(false);
-      }
+      const { error } = await supabase
+        .from('user_profiles')
+        .update(formData)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully."
+      });
+      setEditingProfile(false);
+      // Reload user data
+      const { data: updatedProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      setUser(updatedProfile);
     } catch (error) {
       toast({
         title: "Error",
@@ -103,17 +139,8 @@ const ProfileDashboard = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="w-8 h-8 animate-spin text-blue-800" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (loading) return <div>Loading...</div>
+  if (!user) return null
 
   return (
     <>

@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Star, Minus, Plus, ShoppingCart, ArrowLeft, CheckCircle2, ThumbsUp } from 'lucide-react';
-import { supabase } from '@/config/supabase';
+import supabase from '@/utils/supabase';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useCart } from '@/context/CartContext';

@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Star, Search, SlidersHorizontal, X } from 'lucide-react';
-import { supabase } from '@/config/supabase';
+import supabase from '@/utils/supabase';
 import { Button } from '@/components/ui/button';
 import GoogleAdSense from '@/components/GoogleAdSense';
 
