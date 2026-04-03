@@ -13,6 +13,7 @@ const ProfileDashboard = () => {
   const { toast } = useToast();
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
@@ -57,7 +58,8 @@ const ProfileDashboard = () => {
         })
 
       } catch (err) {
-        console.error(err)
+        console.error('Profile load error:', err)
+        setError(err.message)
       } finally {
         setLoading(false) // always stops spinner
       }
@@ -78,7 +80,34 @@ const ProfileDashboard = () => {
   }, [])
 
   if (loading) return <div>Loading...</div>
-  if (!user) return null
+
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-red-600 mb-4">Something went wrong: {error}</p>
+        <button 
+          onClick={() => navigate('/login')}
+          className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Go to Login
+        </button>
+      </div>
+    </div>
+  )
+
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-gray-600 mb-4">Profile not found.</p>
+        <button 
+          onClick={() => navigate('/login')}
+          className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Go to Login
+        </button>
+      </div>
+    </div>
+  )
 
   const loadUserData = async (userId) => {
     try {
@@ -139,9 +168,6 @@ const ProfileDashboard = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>
-  if (!user) return null
-
   return (
     <>
       <Helmet>
@@ -164,13 +190,13 @@ const ProfileDashboard = () => {
                     <User className="w-12 h-12 text-blue-800" />
                   </div>
                   <h2 className="text-xl font-bold text-white">
-                    {profile?.full_name
+                    {user?.full_name
                       || user?.user_metadata?.full_name
                       || (user?.email?.split('@')[0] || 'Customer')}
                   </h2>
                   <p className="text-blue-100 text-sm">{user?.email}</p>
                   <p className="text-blue-100 text-sm">
-                    {profile?.phone_number
+                    {user?.phone_number
                       || user?.user_metadata?.phone_number
                       || 'Phone not set'}
                   </p>
@@ -287,7 +313,7 @@ const ProfileDashboard = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="p-4 bg-gray-50 rounded-lg">
                           <p className="text-sm text-gray-600 mb-1">Full Name</p>
-                          <p className="text-lg font-semibold">{profile?.full_name || 'Not set'}</p>
+                          <p className="text-lg font-semibold">{user?.full_name || 'Not set'}</p>
                         </div>
                         <div className="p-4 bg-gray-50 rounded-lg">
                           <p className="text-sm text-gray-600 mb-1">Email</p>
@@ -300,14 +326,14 @@ const ProfileDashboard = () => {
                           <p className="text-sm text-gray-600 mb-1">Phone</p>
                           <p className="text-lg font-semibold flex items-center gap-2">
                             <Phone className="w-4 h-4" />
-                            {profile?.phone_number || 'Not set'}
+                            {user?.phone_number || 'Not set'}
                           </p>
                         </div>
                         <div className="p-4 bg-gray-50 rounded-lg">
                           <p className="text-sm text-gray-600 mb-1">Member Since</p>
                           <p className="text-lg font-semibold">
-                            {profile?.created_at 
-                              ? new Date(profile.created_at).toLocaleDateString() 
+                            {user?.created_at 
+                              ? new Date(user.created_at).toLocaleDateString() 
                               : 'Just now'}
                           </p>
                         </div>
