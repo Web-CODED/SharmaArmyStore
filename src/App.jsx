@@ -14,6 +14,8 @@ import RegisterPage from '@/pages/RegisterPage';
 import LoginPage from '@/pages/LoginPage';
 import AuthCallback from '@/pages/AuthCallback';
 import ProfileDashboard from '@/pages/ProfileDashboard';
+import MyOrders from '@/pages/MyOrders';
+import MyAddresses from '@/pages/MyAddresses';
 import Cart from '@/pages/Cart';
 import Checkout from '@/pages/Checkout';
 import OrderConfirmation from '@/pages/OrderConfirmation';
@@ -46,12 +48,12 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/profile" element={<ProfileDashboard />} />
+                <Route path="/orders" element={<MyOrders />} />
+                <Route path="/addresses" element={<MyAddresses />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
                 <Route path="/order/:orderId" element={<OrderDetail />} />
-                <Route path="/orders" element={<ProfileDashboard />} />
-                <Route path="/addresses" element={<ProfileDashboard />} />
                 <Route path="/refund-policy" element={<RefundReturnPolicy />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-conditions" element={<TermsAndConditions />} />
@@ -60,7 +62,6 @@ function App() {
               </Routes>
             </main>
             <LiveSalesCounter />
-            {/* <RepublicDayPopup /> */}
             <ChatBot />
             <Footer />
             <Toaster />
