@@ -5,7 +5,6 @@ import { Menu, X, ShoppingCart, User, LogOut } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import supabase from '@/utils/supabase';
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,12 +15,10 @@ const Navigation = () => {
   const { user, profile, isAuthenticated, signOut } = useAuth();
 
   const handleLogout = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setMobileMenuOpen(false)
-    await supabase.auth.signOut()
-    localStorage.clear()
-    window.location.href = '/'
+    e.preventDefault();
+    e.stopPropagation();
+    setMobileMenuOpen(false);
+    await signOut(); // uses AuthContext signOut ✅
   };
 
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);

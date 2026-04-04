@@ -30,8 +30,8 @@ import { Toaster } from '@/components/ui/toaster';
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
+    <AuthProvider>
+      <Router>
         <CartProvider>
           <div className="min-h-screen flex flex-col">
             <ScrollToTop />
@@ -73,8 +73,8 @@ function App() {
             <Toaster />
           </div>
         </CartProvider>
-      </AuthProvider>
-    </Router>
+      </Router>
+    </AuthProvider>
   );
 }
 
