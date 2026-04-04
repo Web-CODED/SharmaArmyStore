@@ -128,6 +128,8 @@ export const AuthProvider = ({ children }) => {
       setProfile(data);
     } catch (err) {
       console.error('Error fetching user profile:', err);
+    }finally {
+    setLoading(false); // ✅ THIS IS THE FIX
     }
   };
 
