@@ -42,8 +42,11 @@ const LoginPage = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
+      // FIX 6 — Clear any corrupted session before login attempt
+      localStorage.removeItem('sharma-army-store-auth');
+
       const result = await signIn(formData.email, formData.password);
       
       if (result.success) {
@@ -51,13 +54,23 @@ const LoginPage = () => {
           title: "Login Successful!",
           description: "Welcome back to Sharma Army Store.",
         });
-        
         navigate('/profile');
       } else {
-        setErrors({ submit: result.error });
+        // FIX 6 — Better error messages for common errors
+        let errorMessage = result.error;
+        if (
+          result.error?.includes('Invalid login credentials') ||
+          result.error?.includes('invalid_credentials')
+        ) {
+          errorMessage = 'Incorrect email or password. Please try again.';
+        } else if (result.error?.includes('Email not confirmed')) {
+          errorMessage = 'Please verify your email before logging in.';
+        }
+
+        setErrors({ submit: errorMessage });
         toast({
           title: "Login Failed",
-          description: result.error,
+          description: errorMessage,
           variant: "destructive"
         });
       }
@@ -79,14 +92,17 @@ const LoginPage = () => {
         <title>Login - Sharma Army Store</title>
       </Helmet>
       
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 flex flex-col 
+        justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <motion.div
-             initial={{ y: -20, opacity: 0 }}
-             animate={{ y: 0, opacity: 1 }}
-             className="text-center"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="text-center"
           >
-             <h2 className="text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900">
+              Sign in to your account
+            </h2>
           </motion.div>
         </div>
 
@@ -96,14 +112,31 @@ const LoginPage = () => {
           transition={{ delay: 0.1 }}
           className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
         >
-          <div className="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-gray-100">
+          <div className="bg-white py-8 px-4 shadow-xl 
+            sm:rounded-lg sm:px-10 border border-gray-100">
             <form className="space-y-6" onSubmit={handleSubmit}>
               
+              {/* Submit Error */}
+              {errors.submit && (
+                <div className="bg-red-50 border border-red-200 
+                  rounded-md p-3 flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 
+                    flex-shrink-0" />
+                  <p className="text-sm text-red-600">
+                    {errors.submit}
+                  </p>
+                </div>
+              )}
+
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+                <label htmlFor="email" 
+                  className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-3 
+                    flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
@@ -112,18 +145,33 @@ const LoginPage = () => {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`block w-full pl-10 pr-3 py-2 border ${errors.email ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                    className={`block w-full pl-10 pr-3 py-2 border 
+                      ${errors.email 
+                        ? 'border-red-300' 
+                        : 'border-gray-300'} 
+                      rounded-md focus:outline-none focus:ring-blue-500 
+                      focus:border-blue-500 sm:text-sm`}
                     placeholder="you@example.com"
                   />
                 </div>
-                {errors.email && <p className="mt-1 text-sm text-red-600 flex items-center"><AlertCircle className="w-3 h-3 mr-1"/>{errors.email}</p>}
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600 
+                    flex items-center">
+                    <AlertCircle className="w-3 h-3 mr-1"/>
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                <label htmlFor="password" 
+                  className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-3 
+                    flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
@@ -132,11 +180,22 @@ const LoginPage = () => {
                     type="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`block w-full pl-10 pr-3 py-2 border ${errors.password ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                    className={`block w-full pl-10 pr-3 py-2 border 
+                      ${errors.password 
+                        ? 'border-red-300' 
+                        : 'border-gray-300'} 
+                      rounded-md focus:outline-none focus:ring-blue-500 
+                      focus:border-blue-500 sm:text-sm`}
                     placeholder="••••••••"
                   />
                 </div>
-                {errors.password && <p className="mt-1 text-sm text-red-600 flex items-center"><AlertCircle className="w-3 h-3 mr-1"/>{errors.password}</p>}
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600 
+                    flex items-center">
+                    <AlertCircle className="w-3 h-3 mr-1"/>
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
@@ -145,24 +204,31 @@ const LoginPage = () => {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 text-blue-800 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-800 
+                      focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                  <label htmlFor="remember-me" 
+                    className="ml-2 block text-sm text-gray-900">
                     Remember me
                   </label>
                 </div>
-
                 <div className="text-sm">
-                  <a href="#" className="font-medium text-blue-800 hover:text-blue-900">
+                  <Link to="/forgot-password" 
+                    className="font-medium text-blue-800 
+                      hover:text-blue-900">
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
               </div>
 
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center py-2 px-4 
+                  border border-transparent rounded-md shadow-sm 
+                  text-sm font-medium text-white bg-blue-800 
+                  hover:bg-blue-900 focus:outline-none focus:ring-2 
+                  focus:ring-offset-2 focus:ring-blue-500"
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
@@ -174,14 +240,17 @@ const LoginPage = () => {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">New to Sharma Army Store?</span>
+                  <span className="px-2 bg-white text-gray-500">
+                    New to Sharma Army Store?
+                  </span>
                 </div>
               </div>
-
               <div className="mt-6 text-center">
-                 <Link to="/register" className="text-blue-800 hover:text-blue-900 font-medium">
-                   Create an account
-                 </Link>
+                <Link to="/register" 
+                  className="text-blue-800 hover:text-blue-900 
+                    font-medium">
+                  Create an account
+                </Link>
               </div>
             </div>
           </div>
