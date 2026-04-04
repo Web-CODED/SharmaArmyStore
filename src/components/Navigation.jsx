@@ -5,6 +5,7 @@ import { Menu, X, ShoppingCart, User, LogOut } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import supabase from '@/utils/supabase';
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,15 +15,13 @@ const Navigation = () => {
   const { toast } = useToast();
   const { user, profile, isAuthenticated, signOut } = useAuth();
 
-  const handleLogout = async () => {
-    const result = await signOut();
-    if (result.success) {
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out."
-      });
-      navigate('/', { replace: true });
-    }
+  const handleLogout = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setMobileMenuOpen(false)
+    await supabase.auth.signOut()
+    localStorage.clear()
+    window.location.href = '/'
   };
 
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -192,7 +191,7 @@ const Navigation = () => {
                           <span>My Profile</span>
                        </Link>
                        <button 
-                          onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                          onClick={handleLogout}
                           className="flex items-center space-x-3 text-red-600 font-medium w-full text-left"
                         >
                           <LogOut className="w-5 h-5" />
