@@ -50,6 +50,8 @@ function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
                 <Route path="/order/:orderId" element={<OrderDetail />} />
+                <Route path="/orders" element={<ProfileDashboard />} />
+                <Route path="/addresses" element={<ProfileDashboard />} />
                 <Route path="/refund-policy" element={<RefundReturnPolicy />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-conditions" element={<TermsAndConditions />} />

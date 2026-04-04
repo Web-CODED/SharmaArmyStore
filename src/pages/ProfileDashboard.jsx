@@ -74,14 +74,14 @@ export default function ProfileDashboard() {
               <span className="font-medium">My Profile</span>
             </Link>
             <Link
-              to="/orders"
+              to="/profile"
               className="flex items-center space-x-3 px-6 py-4 hover:bg-gray-50 transition-colors"
             >
               <Package className="w-5 h-5 text-blue-800" />
               <span className="font-medium">My Orders</span>
             </Link>
             <Link
-              to="/addresses"
+              to="/profile"
               className="flex items-center space-x-3 px-6 py-4 hover:bg-gray-50 transition-colors"
             >
               <MapPin className="w-5 h-5 text-blue-800" />
