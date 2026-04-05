@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { 
+  createContext, useContext, 
+  useEffect, useState, useRef 
+} from 'react';
 import supabase from '@/utils/supabase';
 
 const AuthContext = createContext();
@@ -6,7 +9,9 @@ const AuthContext = createContext();
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error(
+      'useAuth must be used within an AuthProvider'
+    );
   }
   return context;
 };
@@ -15,65 +20,14 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const checkUser = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!mounted) return;
-
-        setSession(session);
-        setUser(session?.user || null);
-
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        }
-      } catch (err) {
-        if (mounted) setError(err.message);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    checkUser();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
-      setSession(session);
-      setUser(session?.user || null);
-
-      if (event === 'SIGNED_OUT') {
-        setProfile(null);
-        if (mounted) setLoading(false);
-        return;
-      }
-
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-
-      if (mounted) setLoading(false);
-    });
-
-    return () => {
-      mounted = false;
-      subscription?.unsubscribe();
-    };
-  }, []);
+  const isFetchingProfile = useRef(false);
 
   const fetchUserProfile = async (userId) => {
+    // Prevent multiple simultaneous fetches
+    if (isFetchingProfile.current) return;
+    isFetchingProfile.current = true;
+
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -83,220 +37,168 @@ export const AuthProvider = ({ children }) => {
 
       if (error) {
         if (error.code === 'PGRST116') {
+          // Profile doesn't exist — create it
           await createUserProfile(userId);
-          return;
         } else {
           console.error('Error fetching profile:', error);
-          return;
         }
-      }
-
-      const { data: authUserResponse } = await supabase.auth.getUser();
-      const authUser = authUserResponse?.user;
-
-      const patch = {};
-      if (authUser) {
-        const metadata = authUser.user_metadata || {};
-
-        if (!data.full_name || data.full_name === authUser.email) {
-          if (metadata.full_name) patch.full_name = metadata.full_name;
-        }
-        if (!data.phone_number && metadata.phone_number) {
-          patch.phone_number = metadata.phone_number;
-        }
-        if (!data.gender && metadata.gender) {
-          patch.gender = metadata.gender;
-        }
-      }
-
-      if (Object.keys(patch).length > 0) {
-        const { data: updatedData, error: updateError } = await supabase
-          .from('user_profiles')
-          .update(patch)
-          .eq('id', userId)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error('Error patching incomplete profile:', updateError);
-        } else {
-          setProfile(updatedData);
-          return;
-        }
+        return;
       }
 
       setProfile(data);
+
     } catch (err) {
-      console.error('Error fetching user profile:', err);
-    }finally {
-    setLoading(false); // ✅ THIS IS THE FIX
+      console.error('fetchUserProfile error:', err);
+    } finally {
+      isFetchingProfile.current = false;
+      setLoading(false);
     }
   };
 
   const createUserProfile = async (userId) => {
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) throw userError;
+      const { data: { session } } = 
+        await supabase.auth.getSession();
+      
+      const authUser = session?.user;
+      if (!authUser) return;
 
       const { data, error } = await supabase
         .from('user_profiles')
-        .insert([
-          {
-            id: userId,
-            email: user.email,
-            full_name: user.user_metadata?.full_name || user.email,
-            phone_number: user.user_metadata?.phone_number,
-            gender: user.user_metadata?.gender,
-          },
-        ])
+        .insert([{
+          id: userId,
+          email: authUser.email,
+          full_name: 
+            authUser.user_metadata?.full_name || 
+            authUser.email,
+          phone_number: 
+            authUser.user_metadata?.phone_number,
+          gender: authUser.user_metadata?.gender,
+        }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating profile:', error);
+        return;
+      }
 
       setProfile(data);
     } catch (err) {
-      console.error('Error creating user profile:', err);
+      console.error('createUserProfile error:', err);
     }
   };
 
-  const signUp = async (email, password, fullName, phoneNumber, gender) => {
-    try {
-      setError(null);
+  useEffect(() => {
+    let mounted = true;
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${import.meta.env.VITE_SITE_URL}/auth/callback`,
-          data: {
-            full_name: fullName,
-            phone_number: phoneNumber,
-            gender: gender,
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = 
+          await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        setSession(session);
+        setUser(session?.user || null);
+
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('initAuth error:', err);
+        if (mounted) setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    const { data: { subscription } } = 
+      supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (!mounted) return;
+
+          setSession(session);
+          setUser(session?.user || null);
+
+          if (event === 'SIGNED_OUT') {
+            setProfile(null);
+            setLoading(false);
+            return;
+          }
+
+          if (event === 'SIGNED_IN' && session?.user) {
+            await fetchUserProfile(session.user.id);
+            return;
+          }
+
+          if (event === 'TOKEN_REFRESHED') {
+            // Don't refetch profile on token refresh
+            setLoading(false);
+            return;
+          }
+
+          if (!session) {
+            setProfile(null);
+            setLoading(false);
+          }
+        }
+      );
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  const signUp = async (
+    email, password, fullName, 
+    phoneNumber, gender
+  ) => {
+    try {
+      const { data: authData, error: authError } = 
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: 
+              `${import.meta.env.VITE_SITE_URL}/auth/callback`,
+            data: {
+              full_name: fullName,
+              phone_number: phoneNumber,
+              gender: gender,
+            },
           },
-        },
-      });
+        });
 
       if (authError) throw authError;
 
-      if (authData.user) {
-        setUser(authData.user);
-
-        const session = authData.session || null;
-        const needsEmailVerification = !session;
-
-        if (needsEmailVerification) {
-          return {
-            success: true,
-            user: authData.user,
-            needsEmailVerification: true,
-          };
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        let profileCreated = false;
-        let attempts = 0;
-        const maxAttempts = 15;
-
-        while (!profileCreated && attempts < maxAttempts) {
-          attempts++;
-          try {
-            const { data: existingProfile, error: fetchError } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', authData.user.id)
-              .single();
-
-            if (fetchError?.code === 'PGRST116') {
-              await new Promise((resolve) => setTimeout(resolve, 200));
-              continue;
-            }
-
-            if (existingProfile) {
-              profileCreated = true;
-              await fetchUserProfile(authData.user.id);
-              break;
-            }
-          } catch (err) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            continue;
-          }
-        }
-
-        if (!profileCreated) {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const activeUserId = sessionData?.session?.user?.id;
-
-          if (activeUserId === authData.user.id) {
-            try {
-              const { data: insertedProfile, error: insertError } = await supabase
-                .from('user_profiles')
-                .insert([
-                  {
-                    id: authData.user.id,
-                    email,
-                    full_name: fullName,
-                    phone_number: phoneNumber,
-                    gender: gender,
-                  },
-                ])
-                .select()
-                .single();
-
-              if (insertError) {
-                throw new Error(
-                  `Failed to create user profile: ${insertError.message}`
-                );
-              }
-
-              await fetchUserProfile(authData.user.id);
-            } catch (err) {
-              throw err;
-            }
-          }
-        } else {
-          const { data: currentProfile } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', authData.user.id)
-            .single();
-
-          if (
-            currentProfile &&
-            (!currentProfile.phone_number || !currentProfile.gender)
-          ) {
-            await supabase
-              .from('user_profiles')
-              .update({
-                phone_number: phoneNumber,
-                gender: gender,
-              })
-              .eq('id', authData.user.id);
-
-            await fetchUserProfile(authData.user.id);
-          }
-        }
+      if (authData.user && !authData.session) {
+        return {
+          success: true,
+          user: authData.user,
+          needsEmailVerification: true,
+        };
       }
 
       return { success: true, user: authData.user };
+
     } catch (err) {
-      setError(err.message);
       return { success: false, error: err.message };
     }
   };
 
   const signIn = async (email, password) => {
     try {
-      setError(null);
+      localStorage.removeItem('sharma-army-store-auth');
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = 
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (error) throw error;
 
@@ -305,37 +207,28 @@ export const AuthProvider = ({ children }) => {
       await fetchUserProfile(data.user.id);
 
       return { success: true, user: data.user };
+
     } catch (err) {
-      setError(err.message);
       return { success: false, error: err.message };
     }
   };
 
   const signOut = async () => {
     try {
-      setError(null);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
+      await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
       setSession(null);
-
-      if (typeof window !== 'undefined') {
-        window.location.replace('/');
-      }
-
+      localStorage.clear();
+      window.location.replace('/');
       return { success: true };
     } catch (err) {
-      setError(err.message);
       return { success: false, error: err.message };
     }
   };
 
   const updateProfile = async (updates) => {
     try {
-      setError(null);
-
       if (!user) throw new Error('No user logged in');
 
       const { data, error } = await supabase
@@ -349,8 +242,8 @@ export const AuthProvider = ({ children }) => {
 
       setProfile(data);
       return { success: true, profile: data };
+
     } catch (err) {
-      setError(err.message);
       return { success: false, error: err.message };
     }
   };
@@ -360,7 +253,6 @@ export const AuthProvider = ({ children }) => {
     profile,
     session,
     loading,
-    error,
     signUp,
     signIn,
     signOut,
