@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import supabase from '@/utils/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger }
+  from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
+import { Plus, Pencil, Trash2, Image } from 'lucide-react';
 
 const BannerManagement = () => {
   const [banners, setBanners] = useState([]);
@@ -23,9 +20,7 @@ const BannerManagement = () => {
     end_date: '',
   });
 
-  useEffect(() => {
-    fetchBanners();
-  }, []);
+  useEffect(() => { fetchBanners(); }, []);
 
   const fetchBanners = async () => {
     try {
@@ -33,11 +28,9 @@ const BannerManagement = () => {
         .from('banners')
         .select('*')
         .order('display_order', { ascending: true });
-
       if (error) throw error;
       setBanners(data || []);
     } catch (error) {
-      console.error('Error fetching banners:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch banners',
@@ -63,20 +56,18 @@ const BannerManagement = () => {
           .from('banners')
           .update(bannerData)
           .eq('id', editingBanner.id);
-
         if (error) throw error;
         toast({
-          title: 'Success',
+          title: '✅ Success',
           description: 'Banner updated successfully',
         });
       } else {
         const { error } = await supabase
           .from('banners')
           .insert([bannerData]);
-
         if (error) throw error;
         toast({
-          title: 'Success',
+          title: '✅ Success',
           description: 'Banner created successfully',
         });
       }
@@ -86,7 +77,6 @@ const BannerManagement = () => {
       resetForm();
       fetchBanners();
     } catch (error) {
-      console.error('Error saving banner:', error);
       toast({
         title: 'Error',
         description: 'Failed to save banner',
@@ -103,29 +93,30 @@ const BannerManagement = () => {
       occasion: banner.occasion || '',
       is_active: banner.is_active ?? true,
       display_order: banner.display_order?.toString() || '0',
-      start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
-      end_date: banner.end_date ? banner.end_date.split('T')[0] : '',
+      start_date: banner.start_date
+        ? banner.start_date.split('T')[0] : '',
+      end_date: banner.end_date
+        ? banner.end_date.split('T')[0] : '',
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (bannerId) => {
-    if (!confirm('Are you sure you want to delete this banner?')) return;
-
+    if (!confirm(
+      'Are you sure you want to delete this banner?'
+    )) return;
     try {
       const { error } = await supabase
         .from('banners')
         .delete()
         .eq('id', bannerId);
-
       if (error) throw error;
       toast({
-        title: 'Success',
+        title: '✅ Success',
         description: 'Banner deleted successfully',
       });
       fetchBanners();
     } catch (error) {
-      console.error('Error deleting banner:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete banner',
@@ -146,153 +137,354 @@ const BannerManagement = () => {
     });
   };
 
+  const inputClass = `w-full px-3 py-2 border border-gray-300
+    rounded-md bg-white text-gray-900 text-sm
+    focus:outline-none focus:ring-2 focus:ring-blue-500
+    focus:border-blue-500 placeholder-gray-400`;
+
+  const labelClass = `block text-sm font-semibold
+    text-gray-700 mb-1`;
+
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading banners...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8
+          border-b-2 border-blue-800"></div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Banner Management</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+
+      {/* Header */}
+      <div className="flex justify-between items-center
+        bg-white rounded-xl p-4 shadow-sm border
+        border-gray-200">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg
+            flex items-center justify-center">
+            <Image className="w-5 h-5 text-blue-800" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Banner Management
+            </h2>
+            <p className="text-sm text-gray-500">
+              {banners.length} banners total
+            </p>
+          </div>
+        </div>
+
+        <Dialog open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingBanner(null); resetForm(); }}>
-              Add New Banner
-            </Button>
+            <button
+              onClick={() => {
+                setEditingBanner(null);
+                resetForm();
+              }}
+              className="flex items-center gap-2 px-4 py-2
+                bg-blue-800 hover:bg-blue-900 text-white
+                rounded-md text-sm font-medium
+                transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Banner
+            </button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{editingBanner ? 'Edit Banner' : 'Add New Banner'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Dialog */}
+          <DialogContent
+            className="max-w-lg bg-white border
+              border-gray-200 shadow-2xl rounded-xl p-0"
+          >
+            {/* Dialog Header */}
+            <div className="bg-blue-800 px-6 py-4
+              rounded-t-xl">
+              <h2 className="text-xl font-bold text-white">
+                {editingBanner
+                  ? '✏️ Edit Banner'
+                  : '➕ Add New Banner'}
+              </h2>
+              <p className="text-blue-200 text-sm mt-1">
+                {editingBanner
+                  ? 'Update banner details below'
+                  : 'Fill in the details to add a new banner'}
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit}
+              className="p-6 space-y-4">
+
+              {/* Title */}
               <div>
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
+                <label className={labelClass}>
+                  Banner Title *
+                </label>
+                <input
+                  className={inputClass}
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) => setFormData({
+                    ...formData, title: e.target.value
+                  })}
+                  placeholder="e.g. Republic Day Sale"
                   required
                 />
               </div>
+
+              {/* Image URL */}
               <div>
-                <Label htmlFor="image_url">Image URL *</Label>
-                <Input
-                  id="image_url"
+                <label className={labelClass}>
+                  Image URL *
+                </label>
+                <input
+                  className={inputClass}
                   type="url"
                   value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  onChange={(e) => setFormData({
+                    ...formData, image_url: e.target.value
+                  })}
+                  placeholder="https://example.com/banner.jpg"
                   required
                 />
+                {formData.image_url && (
+                  <img
+                    src={formData.image_url}
+                    alt="Banner Preview"
+                    className="mt-2 w-full h-24 object-cover
+                      rounded-lg border border-gray-200"
+                    onError={(e) =>
+                      e.target.style.display = 'none'}
+                  />
+                )}
               </div>
+
+              {/* Occasion */}
               <div>
-                <Label htmlFor="occasion">Occasion</Label>
-                <Input
-                  id="occasion"
+                <label className={labelClass}>Occasion</label>
+                <input
+                  className={inputClass}
                   value={formData.occasion}
-                  onChange={(e) => setFormData({ ...formData, occasion: e.target.value })}
-                  placeholder="e.g., republic_day, diwali, general"
+                  onChange={(e) => setFormData({
+                    ...formData, occasion: e.target.value
+                  })}
+                  placeholder="e.g. republic_day, diwali, general"
                 />
               </div>
+
+              {/* Display Order & Active */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="display_order">Display Order</Label>
-                  <Input
-                    id="display_order"
+                  <label className={labelClass}>
+                    Display Order
+                  </label>
+                  <input
+                    className={inputClass}
                     type="number"
                     value={formData.display_order}
-                    onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      display_order: e.target.value
+                    })}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="is_active">Active</Label>
-                  <div className="flex items-center mt-2">
+                  <label className={labelClass}>Status</label>
+                  <div className="flex items-center mt-3
+                    space-x-2 bg-gray-50 rounded-md px-3 py-2
+                    border border-gray-300">
                     <input
                       type="checkbox"
                       id="is_active"
                       checked={formData.is_active}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        is_active: e.target.checked
+                      })}
+                      className="w-4 h-4 text-blue-600
+                        rounded border-gray-300"
                     />
-                    <span className="ml-2">Active</span>
+                    <label htmlFor="is_active"
+                      className="text-sm font-medium
+                        text-gray-700 cursor-pointer">
+                      Active
+                    </label>
                   </div>
                 </div>
               </div>
+
+              {/* Dates */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="start_date">Start Date</Label>
-                  <Input
-                    id="start_date"
+                  <label className={labelClass}>
+                    Start Date
+                  </label>
+                  <input
+                    className={inputClass}
                     type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(e) => setFormData({
+                      ...formData, start_date: e.target.value
+                    })}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="end_date">End Date</Label>
-                  <Input
-                    id="end_date"
+                  <label className={labelClass}>End Date</label>
+                  <input
+                    className={inputClass}
                     type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(e) => setFormData({
+                      ...formData, end_date: e.target.value
+                    })}
                   />
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+
+              {/* Buttons */}
+              <div className="flex justify-end space-x-3
+                pt-2 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="px-5 py-2 border border-gray-300
+                    rounded-md text-gray-700 text-sm
+                    font-medium hover:bg-gray-50
+                    transition-colors"
+                >
                   Cancel
-                </Button>
-                <Button type="submit">
-                  {editingBanner ? 'Update' : 'Create'} Banner
-                </Button>
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-800
+                    hover:bg-blue-900 text-white rounded-md
+                    text-sm font-medium transition-colors"
+                >
+                  {editingBanner
+                    ? 'Update Banner'
+                    : 'Add Banner'}
+                </button>
               </div>
+
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Banners ({banners.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Occasion</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {banners.map((banner) => (
-                <TableRow key={banner.id}>
-                  <TableCell className="font-medium">{banner.title}</TableCell>
-                  <TableCell>{banner.occasion}</TableCell>
-                  <TableCell>{banner.display_order}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      banner.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {banner.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(banner)}>
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(banner.id)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Banners Table */}
+      <div className="bg-white rounded-xl shadow-sm border
+        border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200
+          bg-gray-50">
+          <h3 className="font-semibold text-gray-900">
+            All Banners ({banners.length})
+          </h3>
+        </div>
+
+        {banners.length === 0 ? (
+          <div className="text-center py-12">
+            <Image className="w-12 h-12 text-gray-300
+              mx-auto mb-3" />
+            <p className="text-gray-500">
+              No banners yet. Add your first banner!
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-blue-800 text-white">
+                <tr>
+                  <th className="text-left px-4 py-3
+                    text-sm font-semibold">Preview</th>
+                  <th className="text-left px-4 py-3
+                    text-sm font-semibold">Title</th>
+                  <th className="text-left px-4 py-3
+                    text-sm font-semibold">Occasion</th>
+                  <th className="text-left px-4 py-3
+                    text-sm font-semibold">Order</th>
+                  <th className="text-left px-4 py-3
+                    text-sm font-semibold">Status</th>
+                  <th className="text-left px-4 py-3
+                    text-sm font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {banners.map((banner) => (
+                  <tr key={banner.id}
+                    className="hover:bg-gray-50
+                      transition-colors">
+                    <td className="px-4 py-3">
+                      {banner.image_url ? (
+                        <img
+                          src={banner.image_url}
+                          alt={banner.title}
+                          className="w-16 h-10 object-cover
+                            rounded border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-16 h-10 bg-gray-100
+                          rounded border border-gray-200
+                          flex items-center justify-center">
+                          <Image className="w-4 h-4
+                            text-gray-400" />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-medium
+                      text-gray-900 text-sm">
+                      {banner.title}
+                    </td>
+                    <td className="px-4 py-3 text-sm
+                      text-gray-600">
+                      {banner.occasion || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm
+                      text-gray-600">
+                      {banner.display_order}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full
+                        text-xs font-medium ${
+                        banner.is_active
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {banner.is_active
+                          ? '● Active' : '● Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(banner)}
+                          className="p-2 text-blue-600
+                            hover:bg-blue-50 rounded-lg
+                            transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDelete(banner.id)}
+                          className="p-2 text-red-500
+                            hover:bg-red-50 rounded-lg
+                            transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
